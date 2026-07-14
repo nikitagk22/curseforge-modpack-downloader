@@ -35,7 +35,7 @@ jobs:
             asset_name: CurseForge-Downloader-macOS-AppleSilicon
             archive_format: zip
           # macOS Intel (x86_64)
-          - os: macos-13
+          - os: macos-15-intel
             python_arch: x64
             asset_name: CurseForge-Downloader-macOS-Intel
             archive_format: zip
