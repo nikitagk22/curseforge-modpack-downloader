@@ -19,10 +19,6 @@ jobs:
           - os: windows-latest
             python_arch: x64
             asset_name: CurseForge-Downloader-Windows-x64.exe
-          # Windows x86 (32-bit)
-          - os: windows-latest
-            python_arch: x86
-            asset_name: CurseForge-Downloader-Windows-x86.exe
           # Linux x86_64
           - os: ubuntu-latest
             python_arch: x64
