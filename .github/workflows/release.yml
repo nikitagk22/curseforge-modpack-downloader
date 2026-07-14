@@ -10,20 +10,39 @@ permissions:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: Build ${{ matrix.asset_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
+          # Windows x64
           - os: windows-latest
-            artifact_name: CurseForge-Downloader.exe
+            python_arch: x64
             asset_name: CurseForge-Downloader-Windows-x64.exe
+          # Windows x86 (32-bit)
+          - os: windows-latest
+            python_arch: x86
+            asset_name: CurseForge-Downloader-Windows-x86.exe
+          # Linux x86_64
           - os: ubuntu-latest
-            artifact_name: CurseForge-Downloader
+            python_arch: x64
             asset_name: CurseForge-Downloader-Linux-x64
+            archive_format: tar.gz
+          # Linux ARM64
+          - os: ubuntu-24.04-arm
+            python_arch: x64
+            asset_name: CurseForge-Downloader-Linux-ARM64
+            archive_format: tar.gz
+          # macOS Apple Silicon (ARM64)
           - os: macos-latest
-            artifact_name: CurseForge-Downloader
-            asset_name: CurseForge-Downloader-macOS-x64
+            python_arch: x64
+            asset_name: CurseForge-Downloader-macOS-AppleSilicon
+            archive_format: zip
+          # macOS Intel (x86_64)
+          - os: macos-13
+            python_arch: x64
+            asset_name: CurseForge-Downloader-macOS-Intel
+            archive_format: zip
 
     steps:
       - name: Checkout code
@@ -33,6 +52,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          architecture: ${{ matrix.python_arch }}
 
       - name: Install dependencies
         run: |
@@ -42,24 +62,31 @@ jobs:
       - name: Build with PyInstaller
         shell: bash
         run: |
-          # Build a single-file executable.
-          # On Windows and macOS, we hide the console window.
-          if [ "${{ matrix.os }}" = "windows-latest" ] || [ "${{ matrix.os }}" = "macos-latest" ]; then
+          if [ "${{ matrix.os }}" = "windows-latest" ] || [ "${{ matrix.os }}" = "macos-latest" ] || [ "${{ matrix.os }}" = "macos-13" ]; then
             pyinstaller --noconsole --onefile --name "CurseForge-Downloader" cf_download.py
           else
             pyinstaller --onefile --name "CurseForge-Downloader" cf_download.py
           fi
 
-      - name: Rename build artifact
+      - name: Package Artifact
         shell: bash
         run: |
-          mv dist/${{ matrix.artifact_name }} dist/${{ matrix.asset_name }}
+          mkdir -p release_dist
+          if [ "${{ matrix.archive_format }}" = "zip" ]; then
+            cd dist
+            zip -r ../release_dist/${{ matrix.asset_name }}.zip CurseForge-Downloader
+          elif [ "${{ matrix.archive_format }}" = "tar.gz" ]; then
+            cd dist
+            tar -czf ../release_dist/${{ matrix.asset_name }}.tar.gz CurseForge-Downloader
+          else
+            cp dist/CurseForge-Downloader.exe release_dist/${{ matrix.asset_name }}
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset_name }}
-          path: dist/${{ matrix.asset_name }}
+          name: artifact-${{ matrix.asset_name }}
+          path: release_dist/*
 
   release:
     name: Create GitHub Release
@@ -74,6 +101,9 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
+
+      - name: List artifacts
+        run: ls -R artifacts
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
