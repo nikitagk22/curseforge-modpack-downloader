@@ -62,10 +62,10 @@ jobs:
       - name: Build with PyInstaller
         shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ] || [ "${{ matrix.os }}" = "macos-latest" ] || [ "${{ matrix.os }}" = "macos-13" ]; then
-            pyinstaller --noconsole --onefile --name "CurseForge-Downloader" cf_download.py
-          else
+          if [[ "${{ matrix.os }}" == *"ubuntu"* ]]; then
             pyinstaller --onefile --name "CurseForge-Downloader" cf_download.py
+          else
+            pyinstaller --noconsole --onefile --name "CurseForge-Downloader" cf_download.py
           fi
 
       - name: Package Artifact
