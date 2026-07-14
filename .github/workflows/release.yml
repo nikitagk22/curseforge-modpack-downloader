@@ -1,0 +1,83 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: CurseForge-Downloader.exe
+            asset_name: CurseForge-Downloader-Windows-x64.exe
+          - os: ubuntu-latest
+            artifact_name: CurseForge-Downloader
+            asset_name: CurseForge-Downloader-Linux-x64
+          - os: macos-latest
+            artifact_name: CurseForge-Downloader
+            asset_name: CurseForge-Downloader-macOS-x64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build with PyInstaller
+        shell: bash
+        run: |
+          # Build a single-file executable.
+          # On Windows and macOS, we hide the console window.
+          if [ "${{ matrix.os }}" = "windows-latest" ] || [ "${{ matrix.os }}" = "macos-latest" ]; then
+            pyinstaller --noconsole --onefile --name "CurseForge-Downloader" cf_download.py
+          else
+            pyinstaller --onefile --name "CurseForge-Downloader" cf_download.py
+          fi
+
+      - name: Rename build artifact
+        shell: bash
+        run: |
+          mv dist/${{ matrix.artifact_name }} dist/${{ matrix.asset_name }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: dist/${{ matrix.asset_name }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

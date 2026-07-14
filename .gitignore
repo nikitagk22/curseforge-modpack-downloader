@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# PyInstaller / Packaging
+build/
+dist/
+*.spec
+
+# Temporary files
+temp_modpack.zip
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
